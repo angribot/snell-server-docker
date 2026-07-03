@@ -1,13 +1,13 @@
 name: Publish Docker image
-run-name: ${{ github.ref_type == 'tag' && format('Snell Server Docker {0}', github.ref_name) || github.workflow }}
+run-name: ${{ format('Snell Server Docker {0}', github.ref_name) }}
 on:
-  workflow_dispatch:
   push:
     tags:
       - "*"
 
 env:
   IMAGE_REPOSITORY: angribot/snell
+  VCS_URL: https://github.com/AkinoYuiko/snell-server-docker
 
 jobs:
   main:
@@ -16,9 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set build date
+      - name: Set build metadata
         run: |
-          echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+          echo "VCS_REF=${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Resolve and validate Snell version
+        run: |
+          echo "SNELL_VERSION=$(sh .github/scripts/check-release-version.sh)" >> "$GITHUB_ENV"
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
@@ -34,35 +39,34 @@ jobs:
 
       - name: Set Docker tags
         run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            tag_commit="$(git rev-parse HEAD)"
-            default_branch="${{ github.event.repository.default_branch }}"
-            default_head="$(git ls-remote origin "refs/heads/${default_branch}" | awk '{print $1}')"
+          tag_commit="$(git rev-parse HEAD)"
+          default_branch="${{ github.event.repository.default_branch }}"
+          default_head="$(git ls-remote origin "refs/heads/${default_branch}" | awk '{print $1}')"
 
-            if [ -z "${default_head}" ]; then
-              echo "Failed to resolve HEAD for ${default_branch}" >&2
-              exit 1
-            fi
-
-            {
-              echo "DOCKER_TAGS<<EOF"
-              echo "${IMAGE_REPOSITORY}:${GITHUB_REF_NAME}"
-              if [ "${tag_commit}" = "${default_head}" ]; then
-                echo "${IMAGE_REPOSITORY}:latest"
-              fi
-              echo "EOF"
-            } >> "$GITHUB_ENV"
-          else
-            echo "DOCKER_TAGS=${IMAGE_REPOSITORY}:latest" >> "$GITHUB_ENV"
+          if [ -z "${default_head}" ]; then
+            echo "Failed to resolve HEAD for ${default_branch}" >&2
+            exit 1
           fi
+
+          {
+            echo "DOCKER_TAGS<<EOF"
+            echo "${IMAGE_REPOSITORY}:${GITHUB_REF_NAME}"
+            if [ "${tag_commit}" = "${default_head}" ]; then
+              echo "${IMAGE_REPOSITORY}:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - name: Docker build and push
         uses: docker/build-push-action@v5
         with:
-          build-args: |
-            BUILD_DATE=${{ env.BUILD_DATE }}
           push: true
           tags: ${{ env.DOCKER_TAGS }}
+          build-args: |
+            SNELL_VERSION=${{ env.SNELL_VERSION }}
+            BUILD_DATE=${{ env.BUILD_DATE }}
+            VCS_REF=${{ env.VCS_REF }}
+            VCS_URL=${{ env.VCS_URL }}
           platforms: |
             linux/amd64
             linux/arm64

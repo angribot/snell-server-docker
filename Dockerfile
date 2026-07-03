@@ -1,16 +1,41 @@
 # syntax=docker/dockerfile:1
-FROM debian:stable-slim
+FROM debian:stable-slim AS builder
 
-ARG TARGETPLATFORM
-ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
-
-COPY entrypoint.sh /snell/
+ARG TARGETPLATFORM=linux/amd64
+ARG SNELL_VERSION=v6.0.0b4
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends wget unzip tini && \
-    chmod +x /snell/entrypoint.sh && \
+    apt-get install -y --no-install-recommends ca-certificates wget unzip && \
     rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp/snell-build
+
+RUN case "${TARGETPLATFORM}" in \
+      "linux/amd64") snell_arch="amd64" ;; \
+      "linux/arm64") snell_arch="aarch64" ;; \
+      *) echo "Unsupported TARGETPLATFORM: ${TARGETPLATFORM}" >&2; exit 1 ;; \
+    esac && \
+    wget -q -O snell.zip "https://dl.nssurge.com/snell/snell-server-${SNELL_VERSION}-linux-${snell_arch}.zip" && \
+    unzip -q snell.zip && \
+    test -x /tmp/snell-build/snell-server
+
+FROM debian:stable-slim
+
+ARG SNELL_VERSION=v6.0.0b4
+ARG BUILD_DATE=unknown
+ARG VCS_REF=unknown
+ARG VCS_URL=https://github.com/AkinoYuiko/snell-server-docker
+
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.source="${VCS_URL}" \
+      org.opencontainers.image.version="${SNELL_VERSION}"
 
 WORKDIR /snell
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/snell/entrypoint.sh"]
+COPY --from=builder /tmp/snell-build/snell-server /snell/snell-server
+COPY entrypoint.sh /snell/entrypoint.sh
+
+RUN chmod +x /snell/snell-server /snell/entrypoint.sh
+
+ENTRYPOINT ["/snell/entrypoint.sh"]
