@@ -1,5 +1,5 @@
-#!/bin/bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 readonly SNELL_HOME="${SNELL_HOME:-/snell}"
 readonly CONFIG_PATH="${SNELL_HOME}/snell.conf"
@@ -14,41 +14,58 @@ die() {
   exit 1
 }
 
-use_compat_env() {
-  local old_name="$1"
-  local new_name="$2"
-  local old_value="${!old_name-}"
-  local new_value="${!new_name-}"
-
-  if [ -n "$new_value" ]; then
+resolve_dns_ip_preference() {
+  if [ -n "${DNS_IP_PREFERENCE:-}" ]; then
     return
   fi
 
-  if [ -n "$old_value" ]; then
-    export "$new_name=$old_value"
-    warn "[deprecated] ${old_name} is deprecated and will be removed when Snell Server v6 stable is released. Use ${new_name} instead."
+  if [ -n "${DNSIP:-}" ]; then
+    DNS_IP_PREFERENCE=$DNSIP
+    export DNS_IP_PREFERENCE
+    warn "[deprecated] DNSIP is deprecated and will be removed when Snell Server v6 stable is released. Use DNS_IP_PREFERENCE instead."
+  fi
+}
+
+resolve_egress_interface() {
+  if [ -n "${EGRESS_INTERFACE:-}" ]; then
+    return
+  fi
+
+  if [ -n "${EGRESS:-}" ]; then
+    EGRESS_INTERFACE=$EGRESS
+    export EGRESS_INTERFACE
+    warn "[deprecated] EGRESS is deprecated and will be removed when Snell Server v6 stable is released. Use EGRESS_INTERFACE instead."
+  fi
+}
+
+resolve_log_level() {
+  if [ -n "${LOG_LEVEL:-}" ]; then
+    return
+  fi
+
+  if [ -n "${LOG:-}" ]; then
+    LOG_LEVEL=$LOG
+    export LOG_LEVEL
+    warn "[deprecated] LOG is deprecated and will be removed when Snell Server v6 stable is released. Use LOG_LEVEL instead."
   fi
 }
 
 validate_no_control_chars() {
-  local name="$1"
-  local value="$2"
-  local sanitized_value
+  value_name=$1
+  value_data=$2
+  sanitized_value=$(printf '%s' "$value_data" | LC_ALL=C tr -d '[:cntrl:]')
 
-  sanitized_value="$(printf '%s' "$value" | LC_ALL=C tr -d '\000-\037\177')"
-  if [ "$sanitized_value" != "$value" ]; then
-    die "[error] ${name} must not contain control characters"
+  if [ "$sanitized_value" != "$value_data" ]; then
+    die "[error] ${value_name} must not contain control characters"
   fi
 }
 
 validate_psk() {
-  local psk_length
-
   if [ -z "${PSK:-}" ]; then
     die "[error] PSK is required"
   fi
 
-  psk_length="$(printf '%s' "$PSK" | wc -c | tr -d ' ')"
+  psk_length=$(printf '%s' "$PSK" | wc -c | awk '{print $1}')
   if [ "$psk_length" -lt 12 ] || [ "$psk_length" -gt 255 ]; then
     die "[error] PSK length must be between 12 and 255 bytes"
   fi
@@ -158,21 +175,16 @@ print_summary() {
 }
 
 main() {
-  use_compat_env DNSIP DNS_IP_PREFERENCE
-  use_compat_env EGRESS EGRESS_INTERFACE
-  use_compat_env LOG LOG_LEVEL
+  resolve_dns_ip_preference
+  resolve_egress_interface
+  resolve_log_level
 
   if [ -n "${VERSION:-}" ]; then
     warn "[deprecated] VERSION is deprecated and ignored. Snell Server version is selected at image build time."
   fi
 
-  if [ "${PORT+x}" != x ]; then
-    PORT=2345
-  fi
-
-  if [ "${LOG_LEVEL+x}" != x ]; then
-    LOG_LEVEL=notify
-  fi
+  : "${PORT:=2345}"
+  : "${LOG_LEVEL:=notify}"
 
   validate_psk
   validate_port

@@ -15,11 +15,11 @@ jobs:
 
       - name: Check shell syntax
         run: |
-          bash -n entrypoint.sh
-          bash -n tests/runtime_contract.sh
-          bash -n tests/docker_smoke.sh
-          bash -n tests/readme_contract.sh
-          bash -n tests/ci_contract.sh
+          sh -n entrypoint.sh
+          sh -n tests/runtime_contract.sh
+          sh -n tests/docker_smoke.sh
+          sh -n tests/readme_contract.sh
+          sh -n tests/ci_contract.sh
 
       - name: Run host contract tests
         run: |

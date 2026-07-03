@@ -31,10 +31,6 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.source="${VCS_URL}" \
       org.opencontainers.image.version="${SNELL_VERSION}"
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends bash && \
-    rm -rf /var/lib/apt/lists/*
-
 WORKDIR /snell
 
 COPY --from=builder /tmp/snell-build/snell-server /snell/snell-server

@@ -26,18 +26,18 @@ expect_failure() {
   fi
 }
 
-expect_failure env SNELL_HOME="$SNELL_HOME_DIR" /bin/bash "$ENTRYPOINT"
+expect_failure env SNELL_HOME="$SNELL_HOME_DIR" /bin/sh "$ENTRYPOINT"
 grep -q '\[error\] PSK is required' "$LOG_FILE"
 
-expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK=short /bin/bash "$ENTRYPOINT"
+expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK=short /bin/sh "$ENTRYPOINT"
 grep -q '\[error\] PSK length must be between 12 and 255 bytes' "$LOG_FILE"
 
 expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK="abcdefghijkl
-mode = unsafe-raw" /bin/bash "$ENTRYPOINT"
+mode = unsafe-raw" /bin/sh "$ENTRYPOINT"
 grep -q '\[error\] PSK must not contain control characters' "$LOG_FILE"
 
 expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK=abcdefghijkl DNS="8.8.8.8
-mode = unsafe-raw" /bin/bash "$ENTRYPOINT"
+mode = unsafe-raw" /bin/sh "$ENTRYPOINT"
 grep -q '\[error\] DNS must not contain control characters' "$LOG_FILE"
 
 env \
@@ -46,7 +46,7 @@ env \
   DNSIP=ipv4-only \
   LOG=debug \
   VERSION=v9.9.9 \
-  /bin/bash "$ENTRYPOINT" >"$LOG_FILE" 2>&1
+  /bin/sh "$ENTRYPOINT" >"$LOG_FILE" 2>&1
 
 grep -q 'PORT:2345' "$LOG_FILE"
 grep -q 'LOG_LEVEL:debug' "$LOG_FILE"
