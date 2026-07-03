@@ -14,6 +14,7 @@ The core shift is:
 - treat runtime environment variables as the only supported configuration input
 - require `PSK` explicitly instead of generating random credentials
 - keep `host` networking as the primary and documented deployment mode
+- keep the final runtime image free of bundled init binaries and require runtime init support from Docker or Compose
 - preserve old environment variable names during a transition period, with explicit deprecation warnings
 - enforce that release tags and bundled Snell binary versions always match
 
@@ -29,6 +30,7 @@ These constraints were confirmed during design discussion and are treated as har
 - Default `PORT` is `2345`.
 - Old environment variables remain temporarily supported, with a plan to remove them when Snell Server v6 stable is released.
 - Before Snell Server v6 stable is released, `latest` should continue to point at the newest beta image that passes tag/version validation.
+- Deployments must use Docker or Compose init support (`docker run --init` or Compose `init: true`) rather than relying on a bundled init binary inside the image.
 
 ## Goals
 
@@ -162,16 +164,21 @@ The container startup flow should become a pure translation from env vars to con
 
 ### Init and signal handling
 
-The final container should continue to run behind `tini`.
+The final image should not bundle `tini`, `dumb-init`, `catatonit`, or any other init binary.
+
+Instead, correct PID 1 and signal behavior is part of the deployment contract:
+
+- `docker run` examples must use `--init`
+- Compose examples must use `init: true`
+- CI runtime tests must also run the container with runtime init enabled
 
 Reasoning:
 
-- it improves signal forwarding to `snell-server`
-- it avoids relying on operators to remember Docker's optional `--init` flag
-- it reduces the chance that `docker stop` waits for the full timeout before the container exits
-- it provides normal PID 1 child reaping behavior
+- it keeps the final runtime image as clean as possible
+- it avoids carrying an extra init binary and its update policy inside the image
+- it still provides predictable signal forwarding and child reaping when the documented runtime contract is followed
 
-`tini` is therefore treated as part of the runtime contract, not as an incidental package.
+The trade-off is deliberate: operators must follow the documented runtime flags instead of relying on the image to embed its own init helper.
 
 ### Validation rules
 
@@ -237,14 +244,14 @@ Final runtime stage responsibilities:
 
 - copy in the extracted `snell-server` binary
 - copy in `entrypoint.sh`
-- include only runtime dependencies
+- include only runtime dependencies needed to execute the entrypoint and server
 
 Dependency expectations:
 
 - `unzip` is builder-only and must not remain in the final runtime image
-- `tini` remains in the final runtime image as an explicit dependency
+- the final runtime image must not bundle `tini`, `dumb-init`, `catatonit`, or any equivalent init helper
 
-This keeps the runtime image smaller and clearer while preserving predictable container behavior.
+This keeps the runtime image smaller and clearer while making runtime init behavior an explicit deployment concern.
 
 ### Build inputs
 
@@ -315,8 +322,8 @@ Minimum CI scope:
 - syntax check for `entrypoint.sh` using `bash -n`
 - image build
 - smoke test: startup fails when `PSK` is missing
-- smoke test: startup reaches the server process when minimal required env is present
-- smoke test: container stops promptly under `docker stop` without waiting for the default timeout
+- smoke test: startup reaches the server process when minimal required env is present, with `docker run --init`
+- smoke test: container stops promptly under `docker stop` when started with runtime init enabled
 
 This is intentionally narrow. The repo does not need a large test matrix yet, but it does need proof that its runtime contract works.
 
@@ -352,12 +359,12 @@ The README files should state clearly:
 - `PSK` is required
 - `PORT` defaults to `2345`
 - bridge mode is not the main supported path, especially for IPv6
-- the image includes `tini` so normal `docker stop` behavior does not depend on users passing `--init`
+- the image does not bundle an init helper, so deployments must use `docker run --init` or Compose `init: true`
 
 The main examples should be:
 
-- `docker run --network host ...`
-- `docker compose` with `network_mode: host`
+- `docker run --init --network host ...`
+- `docker compose` with `init: true` and `network_mode: host`
 
 Examples should use only the new environment variable names.
 
@@ -371,6 +378,7 @@ From the current implementation to the new design:
 - secret logging is removed
 - old env names remain functional temporarily
 - runtime `VERSION` is ignored and deprecated
+- container stop behavior now depends on using Docker or Compose runtime init support as documented
 
 This is a behavior cleanup, not a feature expansion.
 
@@ -387,6 +395,7 @@ This is a behavior cleanup, not a feature expansion.
 
 - users who relied on runtime `VERSION` changes must adapt to image-based version selection
 - users of old env names will see warnings until they migrate
+- operators must remember to use `docker run --init` or Compose `init: true`
 - bridge networking remains possible but intentionally under-documented
 
 These trade-offs are acceptable because they directly support the repo's stated operating model.
@@ -402,7 +411,8 @@ The design is considered implemented when all of the following are true:
 - `PSK` is never printed to logs
 - old env names still work and produce deprecation warnings
 - runtime `VERSION` is ignored with warning
+- the final runtime image does not bundle an init helper
 - release builds fail when Git tag and bundled Snell version differ
 - `latest` continues to track the newest validated beta until v6 stable is released
-- both Chinese and English README files exist and match the new contract
+- both Chinese and English README files exist and match the new contract, including the runtime init requirement
 - CI verifies the runtime contract at a basic level
