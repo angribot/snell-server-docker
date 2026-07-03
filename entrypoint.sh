@@ -1,55 +1,160 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-random_port() {
-  shuf -i 1024-65535 -n 1
+readonly SNELL_HOME="${SNELL_HOME:-/snell}"
+readonly CONFIG_PATH="${SNELL_HOME}/snell.conf"
+readonly SNELL_BIN="${SNELL_HOME}/snell-server"
+
+warn() {
+  echo "$*" >&2
 }
 
-random_psk() {
-  cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 20 | head -n 1
+die() {
+  echo "$*" >&2
+  exit 1
 }
 
-generate_config() {
+use_compat_env() {
+  local old_name="$1"
+  local new_name="$2"
+  local old_value="${!old_name-}"
+  local new_value="${!new_name-}"
 
-  PORT=${PORT:-$(random_port)}
-  PSK=${PSK:-$(random_psk)}
+  if [ -n "$new_value" ]; then
+    return
+  fi
 
-  cat >/snell/snell.conf <<EOF
+  if [ -n "$old_value" ]; then
+    export "$new_name=$old_value"
+    warn "[deprecated] ${old_name} is deprecated and will be removed when Snell Server v6 stable is released. Use ${new_name} instead."
+  fi
+}
+
+validate_psk() {
+  local psk_length
+
+  if [ -z "${PSK:-}" ]; then
+    die "[error] PSK is required"
+  fi
+
+  psk_length="$(printf '%s' "$PSK" | wc -c | tr -d ' ')"
+  if [ "$psk_length" -lt 12 ] || [ "$psk_length" -gt 255 ]; then
+    die "[error] PSK length must be between 12 and 255 bytes"
+  fi
+}
+
+validate_port() {
+  case "$PORT" in
+    ''|*[!0-9]*) die "[error] PORT must be an integer between 1 and 65535" ;;
+  esac
+
+  if [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+    die "[error] PORT must be an integer between 1 and 65535"
+  fi
+}
+
+validate_mode() {
+  if [ -z "${MODE:-}" ]; then
+    return
+  fi
+
+  case "$MODE" in
+    default|unshaped|unsafe-raw) ;;
+    *) die "[error] MODE must be one of: default, unshaped, unsafe-raw" ;;
+  esac
+}
+
+validate_dns_ip_preference() {
+  if [ -z "${DNS_IP_PREFERENCE:-}" ]; then
+    return
+  fi
+
+  case "$DNS_IP_PREFERENCE" in
+    default|prefer-ipv4|prefer-ipv6|ipv4-only|ipv6-only) ;;
+    *) die "[error] DNS_IP_PREFERENCE must be one of: default, prefer-ipv4, prefer-ipv6, ipv4-only, ipv6-only" ;;
+  esac
+}
+
+validate_log_level() {
+  if [ -z "$LOG_LEVEL" ]; then
+    die "[error] LOG_LEVEL cannot be empty"
+  fi
+}
+
+write_config() {
+  cat >"$CONFIG_PATH" <<EOF
 [snell-server]
-listen= 0.0.0.0:$PORT, [::]:$PORT
-psk=$PSK
+listen = 0.0.0.0:${PORT},[::]:${PORT}
+psk = ${PSK}
 EOF
 
-  declare -A config_map=([DNS]="dns" [DNSIP]="dns-ip-preference" [MODE]="mode" [EGRESS]="egress-interface")
+  if [ -n "${MODE:-}" ]; then
+    echo "mode = ${MODE}" >>"$CONFIG_PATH"
+  fi
 
-  for key in "${!config_map[@]}"; do
-    if [ -n "${!key}" ]; then
-      echo "${config_map[$key]}=${!key}" >>/snell/snell.conf
-    fi
-  done
+  if [ -n "${DNS:-}" ]; then
+    echo "dns = ${DNS}" >>"$CONFIG_PATH"
+  fi
+
+  if [ -n "${DNS_IP_PREFERENCE:-}" ]; then
+    echo "dns-ip-preference = ${DNS_IP_PREFERENCE}" >>"$CONFIG_PATH"
+  fi
+
+  if [ -n "${EGRESS_INTERFACE:-}" ]; then
+    echo "egress-interface = ${EGRESS_INTERFACE}" >>"$CONFIG_PATH"
+  fi
 }
 
-download_snell() {
-  VERSION=${VERSION:-v6.0.0b4}
-  case "${TARGETPLATFORM}" in
-    "linux/amd64") SNELL_URL="https://dl.nssurge.com/snell/snell-server-${VERSION}-linux-amd64.zip" ;;
-    "linux/386") SNELL_URL="https://dl.nssurge.com/snell/snell-server-${VERSION}-linux-i386.zip" ;;
-    "linux/arm64") SNELL_URL="https://dl.nssurge.com/snell/snell-server-${VERSION}-linux-aarch64.zip" ;;
-    *) echo "不支持的平台: ${TARGETPLATFORM}" && exit 1 ;;
-    esac
+print_summary() {
+  echo "PORT:${PORT}"
+  echo "LOG_LEVEL:${LOG_LEVEL}"
 
-  wget -q -O snell.zip ${SNELL_URL} &&
-    unzip -qo snell.zip -d /snell &&
-    rm snell.zip &&
-    chmod +x /snell/snell-server
+  if [ -n "${MODE:-}" ]; then
+    echo "MODE:${MODE}"
+  fi
+
+  if [ -n "${DNS:-}" ]; then
+    echo "DNS:${DNS}"
+  fi
+
+  if [ -n "${DNS_IP_PREFERENCE:-}" ]; then
+    echo "DNS_IP_PREFERENCE:${DNS_IP_PREFERENCE}"
+  fi
+
+  if [ -n "${EGRESS_INTERFACE:-}" ]; then
+    echo "EGRESS_INTERFACE:${EGRESS_INTERFACE}"
+  fi
 }
 
-download_snell
-generate_config
-echo "PORT:$PORT"
-echo "PSK:$PSK"
-echo "VERSION:$VERSION"
-[ -n "$DNS" ] && echo "DNS:$DNS"
-[ -n "$DNSIP" ] && echo "DNSIP:$DNSIP"
-[ -n "$MODE" ] && echo "MODE:$MODE"
-exec /snell/snell-server -c /snell/snell.conf -l ${LOG:-notify}
+main() {
+  use_compat_env DNSIP DNS_IP_PREFERENCE
+  use_compat_env EGRESS EGRESS_INTERFACE
+  use_compat_env LOG LOG_LEVEL
+
+  if [ -n "${VERSION:-}" ]; then
+    warn "[deprecated] VERSION is deprecated and ignored. Snell Server version is selected at image build time."
+  fi
+
+  if [ "${PORT+x}" != x ]; then
+    PORT=2345
+  fi
+
+  if [ "${LOG_LEVEL+x}" != x ]; then
+    LOG_LEVEL=notify
+  fi
+
+  validate_psk
+  validate_port
+  validate_mode
+  validate_dns_ip_preference
+  validate_log_level
+
+  test -x "$SNELL_BIN" || die "[error] snell-server binary not found at ${SNELL_BIN}"
+
+  write_config
+  print_summary
+
+  exec "$SNELL_BIN" -c "$CONFIG_PATH" -l "$LOG_LEVEL"
+}
+
+main "$@"
