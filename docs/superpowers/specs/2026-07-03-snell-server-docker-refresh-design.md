@@ -84,6 +84,8 @@ The repository should stay small and flat. The proposed shape is:
 
 This keeps the current simplicity while adding the missing operational and documentation pieces.
 
+`snell-server-help.txt` is treated as a temporary analysis artifact used during the redesign. It is not part of the intended final repository shape and may be removed after the refactor is implemented and verified.
+
 ## Runtime Contract
 
 ### Primary environment variables
