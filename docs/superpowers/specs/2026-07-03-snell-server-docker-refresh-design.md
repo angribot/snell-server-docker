@@ -160,6 +160,19 @@ The container startup flow should become a pure translation from env vars to con
 7. Print a non-sensitive startup summary.
 8. `exec` the Snell process.
 
+### Init and signal handling
+
+The final container should continue to run behind `tini`.
+
+Reasoning:
+
+- it improves signal forwarding to `snell-server`
+- it avoids relying on operators to remember Docker's optional `--init` flag
+- it reduces the chance that `docker stop` waits for the full timeout before the container exits
+- it provides normal PID 1 child reaping behavior
+
+`tini` is therefore treated as part of the runtime contract, not as an incidental package.
+
 ### Validation rules
 
 - `PSK` is required.
@@ -208,6 +221,30 @@ Effects:
 - runtime no longer depends on network reachability
 - startup becomes faster
 - download failures happen in CI/build, not in production startup paths
+
+### Build stages and dependency boundaries
+
+The Docker image should use a multi-stage build.
+
+Builder stage responsibilities:
+
+- install fetch and archive tools such as `wget` and `unzip`
+- download the selected Snell release archive
+- extract the `snell-server` binary
+- fail early if the archive layout is not as expected
+
+Final runtime stage responsibilities:
+
+- copy in the extracted `snell-server` binary
+- copy in `entrypoint.sh`
+- include only runtime dependencies
+
+Dependency expectations:
+
+- `unzip` is builder-only and must not remain in the final runtime image
+- `tini` remains in the final runtime image as an explicit dependency
+
+This keeps the runtime image smaller and clearer while preserving predictable container behavior.
 
 ### Build inputs
 
@@ -279,6 +316,7 @@ Minimum CI scope:
 - image build
 - smoke test: startup fails when `PSK` is missing
 - smoke test: startup reaches the server process when minimal required env is present
+- smoke test: container stops promptly under `docker stop` without waiting for the default timeout
 
 This is intentionally narrow. The repo does not need a large test matrix yet, but it does need proof that its runtime contract works.
 
@@ -314,6 +352,7 @@ The README files should state clearly:
 - `PSK` is required
 - `PORT` defaults to `2345`
 - bridge mode is not the main supported path, especially for IPv6
+- the image includes `tini` so normal `docker stop` behavior does not depend on users passing `--init`
 
 The main examples should be:
 
