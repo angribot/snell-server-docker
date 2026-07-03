@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify release version helper
+        run: sh tests/release_version_contract.sh
+
+      - name: Check shell syntax
+        run: |
+          bash -n entrypoint.sh
+          bash -n tests/runtime_contract.sh
+          bash -n tests/docker_smoke.sh
+
+      - name: Run host runtime contract tests
+        run: sh tests/runtime_contract.sh
+
+      - name: Build image
+        run: docker build -t snell:test .
+
+      - name: Run Docker smoke tests
+        run: sh tests/docker_smoke.sh snell:test
