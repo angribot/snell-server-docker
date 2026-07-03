@@ -32,6 +32,14 @@ grep -q '\[error\] PSK is required' "$LOG_FILE"
 expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK=short /bin/bash "$ENTRYPOINT"
 grep -q '\[error\] PSK length must be between 12 and 255 bytes' "$LOG_FILE"
 
+expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK="abcdefghijkl
+mode = unsafe-raw" /bin/bash "$ENTRYPOINT"
+grep -q '\[error\] PSK must not contain control characters' "$LOG_FILE"
+
+expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK=abcdefghijkl DNS="8.8.8.8
+mode = unsafe-raw" /bin/bash "$ENTRYPOINT"
+grep -q '\[error\] DNS must not contain control characters' "$LOG_FILE"
+
 env \
   SNELL_HOME="$SNELL_HOME_DIR" \
   PSK=abcdefghijkl \

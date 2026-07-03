@@ -18,9 +18,14 @@ jobs:
           bash -n entrypoint.sh
           bash -n tests/runtime_contract.sh
           bash -n tests/docker_smoke.sh
+          bash -n tests/readme_contract.sh
+          bash -n tests/ci_contract.sh
 
-      - name: Run host runtime contract tests
-        run: sh tests/runtime_contract.sh
+      - name: Run host contract tests
+        run: |
+          sh tests/runtime_contract.sh
+          sh tests/readme_contract.sh
+          sh tests/ci_contract.sh
 
       - name: Build image
         run: docker build -t snell:test .

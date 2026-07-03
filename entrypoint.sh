@@ -30,6 +30,17 @@ use_compat_env() {
   fi
 }
 
+validate_no_control_chars() {
+  local name="$1"
+  local value="$2"
+  local sanitized_value
+
+  sanitized_value="$(printf '%s' "$value" | LC_ALL=C tr -d '\000-\037\177')"
+  if [ "$sanitized_value" != "$value" ]; then
+    die "[error] ${name} must not contain control characters"
+  fi
+}
+
 validate_psk() {
   local psk_length
 
@@ -41,6 +52,8 @@ validate_psk() {
   if [ "$psk_length" -lt 12 ] || [ "$psk_length" -gt 255 ]; then
     die "[error] PSK length must be between 12 and 255 bytes"
   fi
+
+  validate_no_control_chars PSK "$PSK"
 }
 
 validate_port() {
@@ -79,6 +92,24 @@ validate_log_level() {
   if [ -z "$LOG_LEVEL" ]; then
     die "[error] LOG_LEVEL cannot be empty"
   fi
+
+  validate_no_control_chars LOG_LEVEL "$LOG_LEVEL"
+}
+
+validate_dns() {
+  if [ -z "${DNS:-}" ]; then
+    return
+  fi
+
+  validate_no_control_chars DNS "$DNS"
+}
+
+validate_egress_interface() {
+  if [ -z "${EGRESS_INTERFACE:-}" ]; then
+    return
+  fi
+
+  validate_no_control_chars EGRESS_INTERFACE "$EGRESS_INTERFACE"
 }
 
 write_config() {
@@ -147,6 +178,8 @@ main() {
   validate_port
   validate_mode
   validate_dns_ip_preference
+  validate_dns
+  validate_egress_interface
   validate_log_level
 
   test -x "$SNELL_BIN" || die "[error] snell-server binary not found at ${SNELL_BIN}"
