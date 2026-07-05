@@ -4,8 +4,12 @@ This context describes how the repository packages and publishes a Snell Server 
 
 ## Language
 
+**Snell Runtime Configuration**:
+The container startup configuration derived from environment variables and rendered into the Snell Server config file. It includes required secret material, listen settings, DNS behavior, egress behavior, and log level.
+_Avoid_: mounted config, runtime version
+
 **Bundled Snell Version**:
-The Snell Server version selected at image build time and recorded in the Dockerfile. Runtime configuration does not change it.
+The Snell Server version selected at image build time and recorded in the Dockerfile. Snell Runtime Configuration does not change it.
 _Avoid_: runtime VERSION, image version
 
 **Snell Version Ordering**:
