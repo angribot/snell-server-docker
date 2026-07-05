@@ -27,6 +27,7 @@ jobs:
           sh -n tests/docker_smoke.sh
           sh -n tests/readme_contract.sh
           sh -n tests/ci_contract.sh
+          sh -n tests/repository_contract.sh
           sh -n tests/latest_version_contract.sh
           sh -n tests/auto_update_contract.sh
 
