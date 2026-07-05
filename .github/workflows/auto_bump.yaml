@@ -33,24 +33,18 @@ jobs:
       - name: Resolve version state
         id: versions
         run: |
-          latest_version="$(sh .github/scripts/resolve-latest-snell-version.sh)"
-          current_version="$(sh .github/scripts/check-release-version.sh)"
-          newest_known_version="$(printf '%s\n%s\n' "$current_version" "$latest_version" | sh .github/scripts/select-snell-version.sh)"
+          version_state="$(mktemp)"
+          sh .github/scripts/snell-version-lifecycle.sh state > "$version_state"
+          . "$version_state"
 
           {
             echo "latest_version=$latest_version"
             echo "current_version=$current_version"
           } >> "$GITHUB_OUTPUT"
 
-          if [ "$latest_version" = "$current_version" ]; then
+          if [ "$needs_bump" != "true" ]; then
             echo "needs_update=false" >> "$GITHUB_OUTPUT"
-            echo "Snell is already at $current_version"
-            exit 0
-          fi
-
-          if [ "$newest_known_version" != "$latest_version" ]; then
-            echo "needs_update=false" >> "$GITHUB_OUTPUT"
-            echo "Current bundled version $current_version is newer than release notes version $latest_version"
+            echo "Snell does not need a version bump: current=$current_version latest=$latest_version"
             exit 0
           fi
 

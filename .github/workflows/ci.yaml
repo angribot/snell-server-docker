@@ -18,6 +18,7 @@ jobs:
       - name: Check shell syntax
         run: |
           sh -n entrypoint.sh
+          sh -n .github/scripts/snell-version-lifecycle.sh
           sh -n .github/scripts/check-release-version.sh
           sh -n .github/scripts/select-snell-version.sh
           sh -n .github/scripts/resolve-latest-snell-version.sh

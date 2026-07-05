@@ -4,9 +4,10 @@ set -eu
 SCRIPT=".github/scripts/check-release-version.sh"
 EXPECTED_VERSION="$(awk -F= '/^ARG SNELL_VERSION=/{print $2; exit}' Dockerfile)"
 LOG_FILE="$(mktemp)"
+DUPLICATE_DOCKERFILE="$(mktemp)"
 
 cleanup() {
-  rm -f "$LOG_FILE"
+  rm -f "$LOG_FILE" "$DUPLICATE_DOCKERFILE"
 }
 trap cleanup EXIT
 
@@ -27,3 +28,16 @@ if GITHUB_REF_TYPE=tag GITHUB_REF_NAME=v0.0.0 sh "$SCRIPT" >"$LOG_FILE" 2>&1; th
 fi
 
 grep -q 'does not match SNELL_VERSION' "$LOG_FILE"
+
+{
+  cat Dockerfile
+  echo 'ARG SNELL_VERSION=v0.0.0'
+} >"$DUPLICATE_DOCKERFILE"
+
+if sh "$SCRIPT" "$DUPLICATE_DOCKERFILE" >"$LOG_FILE" 2>&1; then
+  echo "expected duplicate SNELL_VERSION defaults to fail" >&2
+  cat "$LOG_FILE" >&2
+  exit 1
+fi
+
+grep -q 'exactly one defaulted ARG SNELL_VERSION' "$LOG_FILE"
