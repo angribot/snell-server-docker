@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1
+ARG SNELL_VERSION=v6.0.0b4
+
 FROM debian:stable-slim AS builder
 
 ARG TARGETPLATFORM=linux/amd64
-ARG SNELL_VERSION=v6.0.0b4
+ARG SNELL_VERSION
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates wget unzip && \
@@ -21,7 +23,7 @@ RUN case "${TARGETPLATFORM}" in \
 
 FROM debian:stable-slim
 
-ARG SNELL_VERSION=v6.0.0b4
+ARG SNELL_VERSION
 ARG BUILD_DATE=unknown
 ARG VCS_REF=unknown
 ARG VCS_URL=https://github.com/AkinoYuiko/snell-server-docker
