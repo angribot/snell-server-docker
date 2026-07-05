@@ -36,7 +36,7 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
 WORKDIR /snell
 
 COPY --from=builder /tmp/snell-build/snell-server /snell/snell-server
-COPY entrypoint.sh /snell/entrypoint.sh
+COPY entrypoint.sh runtime-config.sh /snell/
 
 RUN chmod +x /snell/snell-server /snell/entrypoint.sh
 
