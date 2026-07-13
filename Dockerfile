@@ -26,7 +26,7 @@ FROM debian:stable-slim
 ARG SNELL_VERSION
 ARG BUILD_DATE=unknown
 ARG VCS_REF=unknown
-ARG VCS_URL=https://github.com/AkinoYuiko/snell-server-docker
+ARG VCS_URL=https://github.com/angribot/snell-server-docker
 
 LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \

@@ -7,7 +7,7 @@ on:
 
 env:
   IMAGE_REPOSITORY: angribot/snell
-  VCS_URL: https://github.com/AkinoYuiko/snell-server-docker
+  VCS_URL: https://github.com/angribot/snell-server-docker
 
 jobs:
   main:
