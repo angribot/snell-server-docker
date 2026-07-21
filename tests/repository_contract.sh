@@ -100,6 +100,7 @@ assert_auto_update_contract() {
   assert_file_contains "$workflow" '30 16 \* \* \*' 'auto bump workflow must run at 00:30 CST'
   assert_file_contains "$workflow" 'workflow_dispatch' 'auto bump workflow must be manually triggerable'
   assert_file_contains "$workflow" 'REPO_PUSH_TOKEN' 'auto bump workflow must use a token that can trigger publish workflows'
+  assert_file_contains "$workflow" 'persist-credentials: false' 'checkout token must not override the publish-triggering push token'
   assert_file_contains "$workflow" 'snell-version-lifecycle.sh state' 'auto bump workflow must use Snell version lifecycle state'
   assert_file_contains "$workflow" 'needs_bump' 'auto bump workflow must branch on version bump state'
   assert_file_contains "$workflow" 'git tag -a' 'auto bump workflow must create an annotated tag'
