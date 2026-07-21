@@ -65,9 +65,11 @@ These legacy names will be removed when Snell Server v6 stable is released.
 
 ## Versioning
 
+- Stable versions use `vX.Y.Z`, release candidates use `vX.Y.Zrc` or `vX.Y.ZrcN`, and beta versions use `vX.Y.ZbN`
+- A bare `rc` sorts as `rc1`; versions with the same `X.Y.Z` sort as beta, release candidate, then stable
 - Tag-triggered builds require the Git tag name to match the bundled `SNELL_VERSION`
 - The build fails if the tag and bundled version differ
-- Until Snell Server v6 stable is released, `latest` points to the newest validated beta image
+- Until Snell Server v6 stable is released, `latest` points to the newest validated beta or release candidate image
 
 ## Auto Update
 

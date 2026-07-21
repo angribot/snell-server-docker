@@ -26,7 +26,14 @@ die() {
 }
 
 is_valid_snell_version() {
-  printf '%s\n' "$1" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(b[0-9]+)?$'
+  printf '%s\n' "$1" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(b[0-9]+|rc[0-9]*)?$'
+}
+
+canonicalize_snell_version() {
+  case "$1" in
+    *rc) printf '%s1\n' "$1" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
 }
 
 read_current_version() {
@@ -65,26 +72,32 @@ select_version() {
     awk '
       function emit(original, normalized, parts, major, minor, patch, stability, prerelease_num) {
         normalized = original
-        stability = 1
         prerelease_num = 0
 
         if (normalized ~ /^v[0-9]+\.[0-9]+\.[0-9]+b[0-9]+$/) {
           stability = 0
-          sub(/^v/, "", normalized)
-          split(normalized, parts, /[.b]/)
-          major = parts[1] + 0
-          minor = parts[2] + 0
-          patch = parts[3] + 0
-          prerelease_num = parts[4] + 0
+          prerelease_num = normalized
+          sub(/^.*b/, "", prerelease_num)
+          sub(/b[0-9]+$/, "", normalized)
+        } else if (normalized ~ /^v[0-9]+\.[0-9]+\.[0-9]+rc[0-9]*$/) {
+          stability = 1
+          prerelease_num = normalized
+          sub(/^.*rc/, "", prerelease_num)
+          if (prerelease_num == "") {
+            prerelease_num = 1
+          }
+          sub(/rc[0-9]*$/, "", normalized)
         } else if (normalized ~ /^v[0-9]+\.[0-9]+\.[0-9]+$/) {
-          sub(/^v/, "", normalized)
-          split(normalized, parts, /\./)
-          major = parts[1] + 0
-          minor = parts[2] + 0
-          patch = parts[3] + 0
+          stability = 2
         } else {
           return
         }
+
+        sub(/^v/, "", normalized)
+        split(normalized, parts, /\./)
+        major = parts[1] + 0
+        minor = parts[2] + 0
+        patch = parts[3] + 0
 
         printf "%09d %09d %09d %01d %09d %s\n", major, minor, patch, stability, prerelease_num, original
       }
@@ -114,8 +127,8 @@ extract_publishable_versions() {
   source="${1:-$DEFAULT_RELEASE_NOTES_URL}"
 
   asset_pairs="$(load_release_notes "$source" |
-    grep -Eo 'snell-server-v[0-9]+\.[0-9]+\.[0-9]+(b[0-9]+)?-linux-(amd64|aarch64)\.zip' |
-    sed -E 's/^snell-server-(v[0-9]+\.[0-9]+\.[0-9]+(b[0-9]+)?)-linux-(amd64|aarch64)\.zip$/\1 \3/' |
+    grep -Eo 'snell-server-v[0-9]+\.[0-9]+\.[0-9]+(b[0-9]+|rc[0-9]*)?-linux-(amd64|aarch64)\.zip' |
+    sed -E 's/^snell-server-(v[^-]+)-linux-(amd64|aarch64)\.zip$/\1 \2/' |
     sort -u || true)"
 
   if [ -z "$asset_pairs" ]; then
@@ -178,9 +191,13 @@ print_state() {
   current_version="$(read_current_version "$dockerfile_path")"
   latest_version="$(latest_publishable_version "$source")"
   newest_known_version="$(printf '%s\n%s\n' "$current_version" "$latest_version" | select_version)"
+  canonical_current_version="$(canonicalize_snell_version "$current_version")"
+  canonical_latest_version="$(canonicalize_snell_version "$latest_version")"
+  canonical_newest_known_version="$(canonicalize_snell_version "$newest_known_version")"
   needs_bump=false
 
-  if [ "$latest_version" != "$current_version" ] && [ "$newest_known_version" = "$latest_version" ]; then
+  if [ "$canonical_latest_version" != "$canonical_current_version" ] &&
+    [ "$canonical_newest_known_version" = "$canonical_latest_version" ]; then
     needs_bump=true
   fi
 

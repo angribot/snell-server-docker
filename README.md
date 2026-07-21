@@ -65,9 +65,11 @@ services:
 
 ## 版本说明
 
+- 正式版格式为 `vX.Y.Z`，候选版格式为 `vX.Y.Zrc` 或 `vX.Y.ZrcN`，测试版格式为 `vX.Y.ZbN`
+- 裸 `rc` 按 `rc1` 排序；同一 `X.Y.Z` 下，版本顺序为测试版、候选版、正式版
 - Git tag 触发的镜像构建要求 tag 名与内置 `SNELL_VERSION` 完全一致
 - 如果两者不一致，构建会失败
-- 在 Snell Server v6 正式版发布前，`latest` 指向最近一次通过校验的测试版镜像
+- 在 Snell Server v6 正式版发布前，`latest` 指向最近一次通过校验的测试版或候选版镜像
 
 ## 自动更新
 

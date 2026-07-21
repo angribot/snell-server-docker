@@ -13,7 +13,7 @@ The Snell Server version selected at image build time and recorded in the Docker
 _Avoid_: runtime VERSION, image version
 
 **Snell Version Ordering**:
-The ordering rule for Snell release identifiers. Stable releases use `vX.Y.Z`; beta releases use `vX.Y.ZbN`; all numeric parts compare numerically, and a stable `vX.Y.Z` is higher than any beta `vX.Y.ZbN` with the same `X.Y.Z`.
+The ordering rule for Snell release identifiers. Stable releases use `vX.Y.Z`, release candidates use `vX.Y.Zrc` or `vX.Y.ZrcN`, and beta releases use `vX.Y.ZbN`. All numeric parts compare numerically. A bare `rc` has release candidate number 1, and versions with the same `X.Y.Z` order as beta, release candidate, then stable.
 _Avoid_: lexical ordering, tag ordering
 
 **Publishable Snell Version**:
