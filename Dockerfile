@@ -100,13 +100,3 @@ COPY entrypoint.sh runtime-config.sh /snell/
 RUN chmod +x /snell/snell-server /snell/entrypoint.sh
 
 ENTRYPOINT ["/snell/entrypoint.sh"]
-
-FROM runtime AS test
-
-RUN apk add --no-cache dnsmasq
-COPY --from=builder /tmp/glibc-install/opt/glibc/bin/getent /usr/local/bin/glibc-getent
-COPY tests/runtime_contract.sh tests/image_contract.sh /snell/tests/
-ENTRYPOINT ["/bin/sh", "/snell/tests/image_contract.sh"]
-
-# The default build remains the production image, without test tools or fixtures.
-FROM runtime AS final

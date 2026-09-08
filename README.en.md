@@ -69,7 +69,8 @@ These legacy names will be removed when Snell Server v6 stable is released.
 - A bare `rc` sorts as `rc1`; versions with the same `X.Y.Z` sort as beta, release candidate, then stable
 - Tag-triggered builds require the Git tag name to match the bundled `SNELL_VERSION`
 - The build fails if the tag and bundled version differ
-- `latest` is updated only when the tagged commit is also the default branch HEAD; before Snell Server v6 stable, it can point to a validated beta or release candidate
+- Tag-triggered publishing updates `latest` only when the tagged commit is also the live default branch HEAD; before Snell Server v6 stable, it can point to a beta or release candidate that passes version validation
+- Manual publishing updates only `latest` and requires the default branch ref at its live HEAD
 
 ## Auto Update
 
@@ -99,7 +100,7 @@ docker buildx build --platform linux/amd64 --load -t snell:alpine .
 
 ## Tests
 
-Tests cover version rules, runtime configuration, and amd64/arm64 image integration. See the [testing guide](docs/testing.md) for commands and CI details.
+CI runs shell syntax checks and host contracts for version rules and runtime configuration on pull requests and pushes to `main`, using one `ubuntu-latest` runner. Publishing runs independently without a test gate. Published images are not runtime-tested; this is an accepted risk. See the [testing guide](docs/testing.md) for commands and coverage limits.
 
 ## Networking Notes
 
