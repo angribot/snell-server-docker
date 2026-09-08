@@ -85,6 +85,18 @@ To let that automated tag still trigger the existing Docker publish workflow, co
 - The default `GITHUB_TOKEN` is not enough because push / tag events created by it do not trigger downstream workflows
 - The token needs write access to this repository
 
+## Image Build
+
+The runtime uses official `alpine:3.23`, not a third-party alpine-glibc image or `gcompat`. Alpine's musl remains intact for its system tools.
+
+An official Debian builder compiles [GNU glibc 2.44](https://ftp.gnu.org/gnu/glibc/glibc-2.44.tar.xz) from source, verified by the SHA-256 in `Dockerfile`, for `linux/amd64` and `linux/arm64`. The target compiler runs on the build host architecture. glibc is installed under `/opt/glibc`; only the loader, selected stripped shared libraries, and matching GNU C++/GCC runtime libraries from Debian enter the final image. Compiler tools, headers, static libraries, locale archives, and build sources are excluded. Runtime library license notices are retained under `/usr/share/licenses`.
+
+```shell
+docker buildx build --platform linux/amd64,linux/arm64 -t snell:alpine .
+```
+
+`GLIBC_VERSION` and `GLIBC_SHA256` must be updated together. glibc and the copied GNU runtime libraries are not managed by Alpine's `apk`: security updates require rebuilding the image, using `--pull --no-cache` to refresh the builder packages. Changing only `SNELL_VERSION` can reuse the glibc build cache. This is a minimal Snell runtime, not a general-purpose glibc environment; full locale and character conversion modules are intentionally omitted.
+
 ## Networking Notes
 
 - `host` mode is the primary and recommended deployment path

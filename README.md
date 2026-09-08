@@ -85,6 +85,18 @@ services:
 - 不能使用默认 `GITHUB_TOKEN`，因为它触发的 push / tag 事件不会继续触发其他 workflow
 - 这个 token 需要具备对当前仓库的写权限
 
+## 镜像构建
+
+运行基底使用官方 `alpine:3.23`，不使用第三方 alpine-glibc 镜像或 `gcompat`。Alpine 的系统工具继续使用原有 musl。
+
+官方 Debian 构建阶段从源码编译 [GNU glibc 2.44](https://ftp.gnu.org/gnu/glibc/glibc-2.44.tar.xz)，通过 `Dockerfile` 中的 SHA-256 校验，支持 `linux/amd64` 和 `linux/arm64`。目标工具链在构建宿主架构上运行。glibc 安装在 `/opt/glibc`；最终镜像只保留动态加载器、选定且已剥离符号的共享库，以及 Debian 提供的配套 GNU C++/GCC 运行库。不包含编译工具、头文件、静态库、locale 归档或构建源码。运行库许可证保留在 `/usr/share/licenses`。
+
+```shell
+docker buildx build --platform linux/amd64,linux/arm64 -t snell:alpine .
+```
+
+`GLIBC_VERSION` 与 `GLIBC_SHA256` 必须一起更新。glibc 和复制的 GNU 运行库不由 Alpine 的 `apk` 管理：安全更新需要重新构建镜像，可用 `--pull --no-cache` 刷新构建阶段的软件包。仅修改 `SNELL_VERSION` 可以复用 glibc 编译缓存。这是精简的 Snell 运行环境，不是通用 glibc 环境，有意省略完整 locale 和字符集转换模块。
+
 ## 网络说明
 
 - `host` 模式是官方推荐路径
