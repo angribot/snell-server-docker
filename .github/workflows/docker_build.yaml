@@ -1,6 +1,7 @@
 name: Publish Docker image
 run-name: ${{ format('Snell Server Docker {0}', github.ref_name) }}
 on:
+  workflow_dispatch:
   push:
     tags:
       - "*"
@@ -42,9 +43,11 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Set Docker tags
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          tag_commit="$(git rev-parse HEAD)"
-          default_branch="${{ github.event.repository.default_branch }}"
+          build_commit="$(git rev-parse HEAD)"
+          default_branch="${DEFAULT_BRANCH}"
           default_head="$(git ls-remote origin "refs/heads/${default_branch}" | awk '{print $1}')"
 
           if [ -z "${default_head}" ]; then
@@ -52,14 +55,22 @@ jobs:
             exit 1
           fi
 
-          {
-            echo "DOCKER_TAGS<<EOF"
-            echo "${IMAGE_REPOSITORY}:${GITHUB_REF_NAME}"
-            if [ "${tag_commit}" = "${default_head}" ]; then
-              echo "${IMAGE_REPOSITORY}:latest"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            if [ "${GITHUB_REF}" != "refs/heads/${default_branch}" ] || [ "${build_commit}" != "${default_head}" ]; then
+              echo "Manual latest publishing requires the current default branch HEAD" >&2
+              exit 1
             fi
-            echo "EOF"
-          } >> "$GITHUB_ENV"
+            echo "DOCKER_TAGS=${IMAGE_REPOSITORY}:latest" >> "$GITHUB_ENV"
+          else
+            {
+              echo "DOCKER_TAGS<<EOF"
+              echo "${IMAGE_REPOSITORY}:${GITHUB_REF_NAME}"
+              if [ "${build_commit}" = "${default_head}" ]; then
+                echo "${IMAGE_REPOSITORY}:latest"
+              fi
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          fi
 
       - name: Docker build and push
         uses: docker/build-push-action@v7
