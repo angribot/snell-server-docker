@@ -49,6 +49,9 @@ ARG SNELL_VERSION
 EOF
 
 sh "$LIFECYCLE_SCRIPT" state "$HTML_FILE" "$STATE_DOCKERFILE" >"$STATE_FILE"
+current_version='' latest_version='' needs_bump=''
+# State is generated at runtime; missing fields must fail the assertions below.
+# shellcheck source=/dev/null
 . "$STATE_FILE"
 [ "$current_version" = "v6.0.0b4" ]
 [ "$latest_version" = "v6.0.0" ]
@@ -61,6 +64,9 @@ ARG SNELL_VERSION
 EOF
 
 sh "$LIFECYCLE_SCRIPT" state "$RC_FILE" "$RC_STATE_DOCKERFILE" >"$STATE_FILE"
+current_version='' latest_version='' needs_bump=''
+# State is generated at runtime; clear previous values before loading it.
+# shellcheck source=/dev/null
 . "$STATE_FILE"
 [ "$current_version" = "v6.0.0rc1" ]
 [ "$latest_version" = "v6.0.0rc" ]

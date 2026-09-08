@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-readonly ENTRYPOINT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
+ENTRYPOINT_DIR="$(CDPATH='' cd -- "$(dirname "$0")" && pwd)"
+readonly ENTRYPOINT_DIR
 # shellcheck source=runtime-config.sh
 . "${ENTRYPOINT_DIR}/runtime-config.sh"
 
