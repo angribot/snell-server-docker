@@ -3,11 +3,17 @@ on:
   push:
     branches:
       - main
+      - alpine
   pull_request:
+  workflow_call:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -26,6 +32,7 @@ jobs:
           sh -n tests/latest_version_contract.sh
           sh -n tests/runtime_contract.sh
           sh -n tests/docker_smoke.sh
+          sh -n tests/image_contract.sh
 
       - name: Run runtime contract tests
         run: sh tests/runtime_contract.sh
@@ -35,3 +42,11 @@ jobs:
 
       - name: Run Docker smoke tests
         run: sh tests/docker_smoke.sh snell:test
+
+      - name: Run Alpine and glibc contracts
+        run: |
+          docker build --target test -t snell:checks .
+          docker run --rm snell:checks
+
+      - name: Report runtime image size
+        run: docker image inspect snell:test --format 'Runtime image size (Docker reported) = {{.Size}} bytes'
