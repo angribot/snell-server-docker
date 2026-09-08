@@ -10,27 +10,15 @@ env:
   VCS_URL: https://github.com/angribot/snell-server-docker
 
 jobs:
+  verify:
+    uses: ./.github/workflows/ci.yaml
+
   main:
+    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-
-      - name: Check shell syntax
-        run: |
-          sh -n entrypoint.sh
-          sh -n runtime-config.sh
-          sh -n .github/scripts/snell-version-lifecycle.sh
-          sh -n tests/release_version_contract.sh
-          sh -n tests/latest_version_contract.sh
-          sh -n tests/runtime_contract.sh
-          sh -n tests/docker_smoke.sh
-
-      - name: Run host contract tests
-        run: |
-          sh tests/release_version_contract.sh
-          sh tests/latest_version_contract.sh
-          sh tests/runtime_contract.sh
 
       - name: Set build metadata
         run: |

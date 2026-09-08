@@ -69,13 +69,13 @@ These legacy names will be removed when Snell Server v6 stable is released.
 - A bare `rc` sorts as `rc1`; versions with the same `X.Y.Z` sort as beta, release candidate, then stable
 - Tag-triggered builds require the Git tag name to match the bundled `SNELL_VERSION`
 - The build fails if the tag and bundled version differ
-- Until Snell Server v6 stable is released, `latest` points to the newest validated beta or release candidate image
+- `latest` is updated only when the tagged commit is also the default branch HEAD; before Snell Server v6 stable, it can point to a validated beta or release candidate
 
 ## Auto Update
 
 The repository includes an optional GitHub Actions workflow: `.github/workflows/auto_bump.yaml`.
 
-- It runs every day at `00:30` China Standard Time (`30 16 * * *` in GitHub UTC cron)
+- It runs every day at `23:00` China Standard Time (`0 15 * * *` in GitHub UTC cron)
 - It fetches the Snell release notes page and resolves the newest downloadable version
 - It only updates `SNELL_VERSION` when that resolved version is strictly newer than the version currently bundled in `Dockerfile`
 - When an update is found, it creates a commit named `chore: bump snell to <version>` and a Git tag with the same version name
@@ -84,6 +84,22 @@ To let that automated tag still trigger the existing Docker publish workflow, co
 
 - The default `GITHUB_TOKEN` is not enough because push / tag events created by it do not trigger downstream workflows
 - The token needs write access to this repository
+
+## Image Build
+
+The runtime uses official `alpine:3.23`, not a third-party alpine-glibc image or `gcompat`. Alpine's musl remains intact for its system tools.
+
+An official Debian builder compiles [GNU glibc 2.44](https://ftp.gnu.org/gnu/glibc/glibc-2.44.tar.xz) from source, verified by the SHA-256 in `Dockerfile`, for `linux/amd64` and `linux/arm64`. The target compiler runs on the build host architecture. glibc is installed under `/opt/glibc`; only the loader, selected stripped shared libraries, and matching GNU C++/GCC runtime libraries from Debian enter the final image. Compiler tools, headers, static libraries, locale archives, and build sources are excluded. Runtime library license notices are retained under `/usr/share/licenses`.
+
+```shell
+docker buildx build --platform linux/amd64 --load -t snell:alpine .
+```
+
+`GLIBC_VERSION` and `GLIBC_SHA256` must be updated together. glibc and the copied GNU runtime libraries are not managed by Alpine's `apk`: security updates require rebuilding the image, using `--pull --no-cache` to refresh the builder packages. Changing only `SNELL_VERSION` can reuse the glibc build cache. This is a minimal Snell runtime, not a general-purpose glibc environment; full locale and character conversion modules are intentionally omitted.
+
+## Tests
+
+Tests cover version rules, runtime configuration, and amd64/arm64 image integration. See the [testing guide](docs/testing.md) for commands and CI details.
 
 ## Networking Notes
 
