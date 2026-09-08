@@ -5,4 +5,6 @@ README.en.md
 LICENSE
 docs
 snell-server-help.txt
-tests
+tests/*
+!tests/runtime_contract.sh
+!tests/image_contract.sh
