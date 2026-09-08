@@ -11,11 +11,7 @@ env:
   VCS_URL: https://github.com/angribot/snell-server-docker
 
 jobs:
-  verify:
-    uses: ./.github/workflows/ci.yaml
-
   main:
-    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

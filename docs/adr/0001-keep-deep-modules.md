@@ -12,4 +12,4 @@ Repository-wide grep contracts are not deep modules. They couple tests to filena
 
 ## Consequences
 
-GitHub Actions remain adapters for Snell version lifecycle decisions, and `entrypoint.sh` remains an adapter for Snell runtime configuration. Tests exercise those interfaces and keep Docker smoke coverage focused on image integration. Repository documentation and workflow wiring do not have grep-only contract tests.
+GitHub Actions remain adapters for Snell version lifecycle decisions, and `entrypoint.sh` remains an adapter for Snell runtime configuration. Host tests exercise those interfaces; Docker smoke and image-integration coverage have been removed. Repository documentation and workflow wiring do not have grep-only contract tests.

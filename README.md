@@ -69,7 +69,8 @@ services:
 - 裸 `rc` 按 `rc1` 排序；同一 `X.Y.Z` 下，版本顺序为测试版、候选版、正式版
 - Git tag 触发的镜像构建要求 tag 名与内置 `SNELL_VERSION` 完全一致
 - 如果两者不一致，构建会失败
-- 仅当 tag 对应提交同时是默认分支 HEAD 时才更新 `latest`；在 Snell Server v6 正式版发布前，它可以指向已验证的测试版或候选版
+- tag 触发的发布仅当 tag 对应提交同时是默认分支当前 HEAD 时才更新 `latest`；在 Snell Server v6 正式版发布前，它可以指向通过版本校验的测试版或候选版
+- 手动发布仅更新 `latest`，且必须选择默认分支 ref，并指向该分支当前 HEAD
 
 ## 自动更新
 
@@ -99,7 +100,7 @@ docker buildx build --platform linux/amd64 --load -t snell:alpine .
 
 ## 测试
 
-覆盖版本规则、运行配置及 amd64/arm64 镜像运行检查。命令与 CI 说明见[测试指南](docs/testing.md)。
+CI 在 pull request 和推送到 `main` 时，使用单个 `ubuntu-latest` runner 执行 shell 语法检查，以及版本规则和运行配置的宿主机契约测试。发布独立运行，不以测试通过为前置条件。发布的镜像不经过运行测试，这是已接受的风险。命令与覆盖范围见[测试指南](docs/testing.md)。
 
 ## 网络说明
 
