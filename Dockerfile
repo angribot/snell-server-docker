@@ -79,7 +79,7 @@ RUN case "${TARGETARCH}" in \
     unzip -q snell.zip && \
     test -x /tmp/snell-build/snell-server
 
-FROM alpine:3.23 AS runtime
+FROM alpine:3.24 AS runtime
 
 ARG SNELL_VERSION
 ARG BUILD_DATE=unknown
