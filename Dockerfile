@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 ARG SNELL_VERSION=v6.0.0rc2
 
+FROM busybox:1.37.0-musl AS shell
+
 FROM --platform=$BUILDPLATFORM debian:trixie-slim AS builder
 
 ARG TARGETARCH
@@ -79,7 +81,7 @@ RUN case "${TARGETARCH}" in \
     unzip -q snell.zip && \
     test -x /tmp/snell-build/snell-server
 
-FROM alpine:3.23 AS runtime
+FROM scratch AS runtime
 
 ARG SNELL_VERSION
 ARG BUILD_DATE=unknown
@@ -93,10 +95,12 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}" \
 
 WORKDIR /snell
 
+COPY --from=shell /bin/ /bin/
 COPY --from=builder /runtime/ /
 COPY --from=builder /tmp/snell-build/snell-server /snell/snell-server
 COPY entrypoint.sh runtime-config.sh /snell/
 
-RUN chmod +x /snell/snell-server /snell/entrypoint.sh
+RUN mkdir -p /tmp /etc && chmod 1777 /tmp && \
+    chmod +x /snell/snell-server /snell/entrypoint.sh
 
 ENTRYPOINT ["/snell/entrypoint.sh"]
