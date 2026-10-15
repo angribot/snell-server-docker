@@ -88,15 +88,15 @@ To let that automated tag still trigger the existing Docker publish workflow, co
 
 ## Image Build
 
-The runtime uses official `alpine:3.23`, not a third-party alpine-glibc image or `gcompat`. Alpine's musl remains intact for its system tools.
+The runtime starts from `scratch`. Statically linked BusyBox utilities from the official `busybox:1.37.0-musl` image provide `/bin/sh` and the commands used by the startup scripts. Snell uses the separately bundled glibc libraries. The image includes no package manager; `/tmp` is writable with mode `1777`.
 
 An official Debian builder compiles [GNU glibc 2.44](https://ftp.gnu.org/gnu/glibc/glibc-2.44.tar.xz) from source, verified by the SHA-256 in `Dockerfile`, for `linux/amd64` and `linux/arm64`. The target compiler runs on the build host architecture. glibc is installed under `/opt/glibc`; only the loader, selected stripped shared libraries, and matching GNU C++/GCC runtime libraries from Debian enter the final image. Compiler tools, headers, static libraries, locale archives, and build sources are excluded. Runtime library license notices are retained under `/usr/share/licenses`.
 
 ```shell
-docker buildx build --platform linux/amd64 --load -t snell:alpine .
+docker buildx build --platform linux/amd64 --load -t snell:scratch .
 ```
 
-`GLIBC_VERSION` and `GLIBC_SHA256` must be updated together. glibc and the copied GNU runtime libraries are not managed by Alpine's `apk`: security updates require rebuilding the image, using `--pull --no-cache` to refresh the builder packages. Changing only `SNELL_VERSION` can reuse the glibc build cache. This is a minimal Snell runtime, not a general-purpose glibc environment; full locale and character conversion modules are intentionally omitted.
+`GLIBC_VERSION` and `GLIBC_SHA256` must be updated together. Security updates require rebuilding the image: update the pinned glibc or BusyBox version when needed, and use `--pull --no-cache` to refresh base images and builder packages. Changing only `SNELL_VERSION` can reuse the glibc build cache. This is a minimal Snell runtime, not a general-purpose glibc environment; full locale and character conversion modules are intentionally omitted.
 
 ## Tests
 
