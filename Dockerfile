@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 ARG SNELL_VERSION=v6.0.0rc2
 
-FROM busybox:1.37.0-musl AS shell
+FROM busybox:glibc AS shell
 
 FROM --platform=$BUILDPLATFORM debian:trixie-slim AS builder
 
