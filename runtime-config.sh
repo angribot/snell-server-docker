@@ -9,47 +9,21 @@ snell_runtime_die() {
   exit 1
 }
 
-snell_runtime_resolve_dns_ip_preference() {
-  if [ -n "${DNS_IP_PREFERENCE:-}" ]; then
-    return
-  fi
-
+snell_runtime_reject_removed_env() {
   if [ -n "${DNSIP:-}" ]; then
-    DNS_IP_PREFERENCE=$DNSIP
-    export DNS_IP_PREFERENCE
-    snell_runtime_warn "[deprecated] DNSIP is deprecated and will be removed when Snell Server v6 stable is released. Use DNS_IP_PREFERENCE instead."
-  fi
-}
-
-snell_runtime_resolve_egress_interface() {
-  if [ -n "${EGRESS_INTERFACE:-}" ]; then
-    return
+    snell_runtime_die "[error] DNSIP is no longer supported; use DNS_IP_PREFERENCE instead"
   fi
 
   if [ -n "${EGRESS:-}" ]; then
-    EGRESS_INTERFACE=$EGRESS
-    export EGRESS_INTERFACE
-    snell_runtime_warn "[deprecated] EGRESS is deprecated and will be removed when Snell Server v6 stable is released. Use EGRESS_INTERFACE instead."
-  fi
-}
-
-snell_runtime_resolve_log_level() {
-  if [ -n "${LOG_LEVEL:-}" ]; then
-    return
+    snell_runtime_die "[error] EGRESS is no longer supported; use EGRESS_INTERFACE instead"
   fi
 
   if [ -n "${LOG:-}" ]; then
-    LOG_LEVEL=$LOG
-    export LOG_LEVEL
-    snell_runtime_warn "[deprecated] LOG is deprecated and will be removed when Snell Server v6 stable is released. Use LOG_LEVEL instead."
+    snell_runtime_die "[error] LOG is no longer supported; use LOG_LEVEL instead"
   fi
 }
 
-snell_runtime_resolve_legacy_env() {
-  snell_runtime_resolve_dns_ip_preference
-  snell_runtime_resolve_egress_interface
-  snell_runtime_resolve_log_level
-
+snell_runtime_warn_ignored_version() {
   if [ -n "${VERSION:-}" ]; then
     snell_runtime_warn "[deprecated] VERSION is deprecated and ignored. Snell Server version is selected at image build time."
   fi
@@ -197,7 +171,8 @@ snell_runtime_print_summary() {
 }
 
 snell_runtime_prepare() {
-  snell_runtime_resolve_legacy_env
+  snell_runtime_reject_removed_env
+  snell_runtime_warn_ignored_version
   snell_runtime_apply_defaults
   snell_runtime_validate_env
 }

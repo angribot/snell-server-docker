@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG SNELL_VERSION=v6.0.0rc2
+ARG SNELL_VERSION=v6.0.0
 
 FROM busybox:glibc AS shell
 

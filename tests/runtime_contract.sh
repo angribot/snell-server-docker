@@ -82,18 +82,22 @@ grep -q '^dns = 1.1.1.1,8.8.8.8$' "$SNELL_HOME_DIR/snell.conf"
 grep -q '^dns-ip-preference = prefer-ipv4$' "$SNELL_HOME_DIR/snell.conf"
 grep -q '^egress-interface = eth0$' "$SNELL_HOME_DIR/snell.conf"
 
+expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK=abcdefghijkl DNSIP=ipv4-only /bin/sh "$ENTRYPOINT"
+grep -q '\[error\] DNSIP is no longer supported; use DNS_IP_PREFERENCE instead' "$LOG_FILE"
+
+expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK=abcdefghijkl EGRESS=eth0 /bin/sh "$ENTRYPOINT"
+grep -q '\[error\] EGRESS is no longer supported; use EGRESS_INTERFACE instead' "$LOG_FILE"
+
+expect_failure env SNELL_HOME="$SNELL_HOME_DIR" PSK=abcdefghijkl LOG=verbose /bin/sh "$ENTRYPOINT"
+grep -q '\[error\] LOG is no longer supported; use LOG_LEVEL instead' "$LOG_FILE"
+
 env \
   SNELL_HOME="$SNELL_HOME_DIR" \
   PSK=abcdefghijkl \
-  DNSIP=ipv4-only \
-  LOG=verbose \
   VERSION=v9.9.9 \
   /bin/sh "$ENTRYPOINT" >"$LOG_FILE" 2>&1
 
 grep -q 'PORT:2345' "$LOG_FILE"
-grep -q 'LOG_LEVEL:verbose' "$LOG_FILE"
-grep -q '\[deprecated\] DNSIP is deprecated' "$LOG_FILE"
-grep -q '\[deprecated\] LOG is deprecated' "$LOG_FILE"
+grep -q 'LOG_LEVEL:notify' "$LOG_FILE"
 grep -q '\[deprecated\] VERSION is deprecated and ignored' "$LOG_FILE"
 grep -q '^listen = 0.0.0.0:2345,\[::\]:2345$' "$SNELL_HOME_DIR/snell.conf"
-grep -q '^dns-ip-preference = ipv4-only$' "$SNELL_HOME_DIR/snell.conf"

@@ -53,15 +53,13 @@ services:
 
 ## 兼容与废弃
 
-以下旧环境变量仍然兼容，但启动时会打印废弃提示：
+以下旧环境变量已在 Snell Server v6 正式版移除，设置后容器会启动失败并提示改用新变量：
 
 - `DNSIP` -> `DNS_IP_PREFERENCE`
 - `EGRESS` -> `EGRESS_INTERFACE`
 - `LOG` -> `LOG_LEVEL`
 
-这些旧变量将在 Snell Server v6 正式版发布时移除支持。
-
-`VERSION` 不再作为运行时配置项生效。Snell 版本在镜像构建阶段决定。
+`VERSION` 不再作为运行时配置项生效，设置后会打印提示并被忽略。Snell 版本在镜像构建阶段决定。
 
 ## 版本说明
 
@@ -69,7 +67,7 @@ services:
 - 裸 `rc` 按 `rc1` 排序；同一 `X.Y.Z` 下，版本顺序为测试版、候选版、正式版
 - Git tag 触发的镜像构建要求 tag 名与内置 `SNELL_VERSION` 完全一致
 - 如果两者不一致，构建会失败
-- tag 触发的发布仅当 tag 对应提交同时是默认分支当前 HEAD 时才更新 `latest`；在 Snell Server v6 正式版发布前，它可以指向通过版本校验的测试版或候选版
+- tag 触发的发布仅当 tag 对应提交同时是默认分支当前 HEAD 时才更新 `latest`
 - 手动发布仅更新 `latest`，且必须选择默认分支 ref，并指向该分支当前 HEAD
 
 ## 自动更新

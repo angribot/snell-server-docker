@@ -53,15 +53,13 @@ services:
 
 ## Compatibility and Deprecation
 
-The following legacy environment variables still work, but the container prints a deprecation warning when they are used:
+The following legacy environment variables were removed with Snell Server v6 stable; setting them fails container startup with an error that names the replacement:
 
 - `DNSIP` -> `DNS_IP_PREFERENCE`
 - `EGRESS` -> `EGRESS_INTERFACE`
 - `LOG` -> `LOG_LEVEL`
 
-These legacy names will be removed when Snell Server v6 stable is released.
-
-`VERSION` is no longer a runtime setting. The Snell binary version is selected when the image is built.
+`VERSION` is no longer a runtime setting; it is ignored with a deprecation warning. The Snell binary version is selected when the image is built.
 
 ## Versioning
 
@@ -69,7 +67,7 @@ These legacy names will be removed when Snell Server v6 stable is released.
 - A bare `rc` sorts as `rc1`; versions with the same `X.Y.Z` sort as beta, release candidate, then stable
 - Tag-triggered builds require the Git tag name to match the bundled `SNELL_VERSION`
 - The build fails if the tag and bundled version differ
-- Tag-triggered publishing updates `latest` only when the tagged commit is also the live default branch HEAD; before Snell Server v6 stable, it can point to a beta or release candidate that passes version validation
+- Tag-triggered publishing updates `latest` only when the tagged commit is also the live default branch HEAD
 - Manual publishing updates only `latest` and requires the default branch ref at its live HEAD
 
 ## Auto Update
