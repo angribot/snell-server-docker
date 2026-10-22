@@ -29,4 +29,4 @@ Pull requests and pushes to `main` run shell syntax checks and all three host co
 
 Publishing is independent of CI: it does not run tests or wait for verification. Tag-triggered publishing still validates the tag against the Bundled Snell Version, publishes the version tag, and updates `latest` only when the tagged commit is the live default branch HEAD. Manual publishing updates only `latest` and requires both the default branch ref and its live HEAD. Production builds still build and push `linux/amd64` and `linux/arm64` images.
 
-Published images are not runtime-tested. Host contracts do not verify the bundled BusyBox shell, glibc hosts/DNS resolution, container startup, networking, or shutdown; this coverage gap is an accepted risk.
+The publishing workflow does not runtime-test built images. Host contracts do not verify the bundled BusyBox shell, glibc hosts/DNS resolution, container startup, networking, or shutdown; this coverage gap is an accepted risk.

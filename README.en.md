@@ -86,19 +86,19 @@ To let that automated tag still trigger the existing Docker publish workflow, co
 
 ## Image Build
 
-The runtime starts from `scratch`. Statically linked BusyBox utilities from the official `busybox:1.37.0-musl` image provide `/bin/sh` and the commands used by the startup scripts. Snell uses the separately bundled glibc libraries. The image includes no package manager; `/tmp` is writable with mode `1777`.
+The runtime uses the official `busybox:1.38.0-glibc` image, which provides `/bin/sh`, startup utilities, and glibc. A target-architecture `debian:trixie-slim` builder supplies three additional precompiled libraries required by Snell: `libdl.so.2`, `libstdc++.so.6`, and `libgcc_s.so.1`. They are copied into `/lib`, with their license notices under `/usr/share/licenses`. No glibc source build or compiler toolchain is needed.
 
-An official Debian builder compiles [GNU glibc 2.44](https://ftp.gnu.org/gnu/glibc/glibc-2.44.tar.xz) from source, verified by the SHA-256 in `Dockerfile`, for `linux/amd64` and `linux/arm64`. The target compiler runs on the build host architecture. glibc is installed under `/opt/glibc`; only the loader, selected stripped shared libraries, and matching GNU C++/GCC runtime libraries from Debian enter the final image. Compiler tools, headers, static libraries, locale archives, and build sources are excluded. Runtime library license notices are retained under `/usr/share/licenses`.
+The builder downloads the Bundled Snell Version for `linux/amd64` or `linux/arm64`. Only the additional runtime libraries, license notices, and Snell binary are copied from the builder; the runtime includes no package manager. BusyBox provides a writable `/tmp` with mode `1777`.
 
 ```shell
-docker buildx build --platform linux/amd64 --load -t snell:scratch .
+docker buildx build --platform linux/amd64 --load -t snell:local .
 ```
 
-`GLIBC_VERSION` and `GLIBC_SHA256` must be updated together. Security updates require rebuilding the image: update the pinned glibc or BusyBox version when needed, and use `--pull --no-cache` to refresh base images and builder packages. Changing only `SNELL_VERSION` can reuse the glibc build cache. This is a minimal Snell runtime, not a general-purpose glibc environment; full locale and character conversion modules are intentionally omitted.
+The BusyBox version is pinned; Debian tracks the `trixie-slim` suite. Keep their glibc runtimes compatible when changing either base, and verify both supported architectures. Security updates require rebuilding with refreshed base images and Debian packages: use `--pull --no-cache`, and update the BusyBox tag when needed. The existing Docker Dependabot configuration checks base-image updates. Changing only `SNELL_VERSION` can reuse the runtime-library build cache.
 
 ## Tests
 
-CI runs shell syntax checks and host contracts for version rules and runtime configuration on pull requests and pushes to `main`, using one `ubuntu-latest` runner. Publishing runs independently without a test gate. Published images are not runtime-tested; this is an accepted risk. See the [testing guide](docs/testing.md) for commands and coverage limits.
+CI runs shell syntax checks and host contracts for version rules and runtime configuration on pull requests and pushes to `main`, using one `ubuntu-latest` runner. Publishing runs independently without a test gate. Publishing does not include built-image runtime tests; this is an accepted risk. See the [testing guide](docs/testing.md) for commands and coverage limits.
 
 ## Networking Notes
 

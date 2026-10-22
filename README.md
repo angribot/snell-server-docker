@@ -86,11 +86,11 @@ services:
 
 ## 镜像构建
 
-See [Image Build](README.en.md#image-build) for the scratch runtime, bundled libraries, build command, and security update requirements.
+[镜像构建](README.en.md#image-build)
 
 ## 测试
 
-CI 在 pull request 和推送到 `main` 时，使用单个 `ubuntu-latest` runner 执行 shell 语法检查，以及版本规则和运行配置的宿主机契约测试。发布独立运行，不以测试通过为前置条件。发布的镜像不经过运行测试，这是已接受的风险。命令与覆盖范围见[测试指南](docs/testing.md)。
+CI 在 pull request 和推送到 `main` 时，使用单个 `ubuntu-latest` runner 执行 shell 语法检查，以及版本规则和运行配置的宿主机契约测试。发布独立运行，不以测试通过为前置条件。命令与覆盖范围见[测试指南](docs/testing.md)。
 
 ## 网络说明
 
